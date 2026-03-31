@@ -1,14 +1,37 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { clientsHttp } from '../http/clients'
-import type { ClientPayload } from '../types/client'
+import { extractPaginated } from '../http/api'
+import type { ClientListParams, SortOrder } from '../http/api'
+import type { Client, ClientPayload } from '../types/client'
 
-export function useClients() {
+export interface UseClientsFilters {
+  page?: number
+  perPage?: number
+  name?: string
+  cnpj?: string
+  order?: SortOrder
+  orderBy?: 'name' | 'cnpj' | 'email'
+}
+
+export function useClients(filters: UseClientsFilters = {}) {
+  const { page = 1, perPage = 15, name, cnpj, order, orderBy } = filters
+
+  const params: ClientListParams = {
+    page,
+    per_page: perPage,
+    ...(name ? { name } : {}),
+    ...(cnpj ? { cnpj } : {}),
+    ...(order ? { order } : {}),
+    ...(orderBy ? { order_by: orderBy } : {}),
+  }
+
   return useQuery({
-    queryKey: ['clients'],
+    queryKey: ['clients', params],
     queryFn: async () => {
-      const { data } = await clientsHttp.getAll()
-      return data.data
+      const { data } = await clientsHttp.getAll(params)
+      return extractPaginated<Client>(data)
     },
+    placeholderData: keepPreviousData,
   })
 }
 

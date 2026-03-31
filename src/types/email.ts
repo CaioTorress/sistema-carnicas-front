@@ -8,3 +8,13 @@ export interface EmailDispatchItem {
 export interface EmailDispatchBatchPayload {
   dispatches: EmailDispatchItem[]
 }
+
+/** Campos enviados como `multipart/form-data` em POST /email/send */
+export interface EmailSendPayload {
+  subject: string
+  body: string
+  to: string[]
+  client_ids: number[]
+  document_ids: number[]
+  attachments: File[]
+}

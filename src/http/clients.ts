@@ -1,5 +1,5 @@
 import { api } from './api'
-import type { ApiResponse } from './api'
+import type { ApiResponse, PaginatedResponse, ClientListParams } from './api'
 import type { Client, ClientPayload, ClientEmailPayload } from '../types/client'
 
 function toFormData(payload: Record<string, unknown>): FormData {
@@ -17,8 +17,8 @@ function toFormData(payload: Record<string, unknown>): FormData {
 }
 
 export const clientsHttp = {
-  getAll: () =>
-    api.get<ApiResponse<Client[]>>('/clients'),
+  getAll: (params?: ClientListParams) =>
+    api.get<PaginatedResponse<Client>>('/clients', { params }),
 
   getById: (id: number) =>
     api.get<ApiResponse<Client>>(`/clients/${id}`),

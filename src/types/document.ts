@@ -1,4 +1,4 @@
-export type DocumentType = 'CR' | 'AATIPP' | 'BOLETO'
+export type DocumentType = 'CR' | 'AATIPP' | 'BOLETO' | 'NFSE'
 export type DocumentStatus = 'pendente' | 'emitido' | 'cancelado' | 'erro'
 
 export interface Document {

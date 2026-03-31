@@ -1,15 +1,17 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { nfseHttp } from '../http/nfse'
-import type { NfsePayload } from '../types/nfse'
+import { extractPaginated } from '../http/api'
+import type { Nfse, NfsePayload } from '../types/nfse'
 
-export function useNfse(clientId: number) {
+export function useNfse(clientId: number, page = 1, perPage = 15) {
   return useQuery({
-    queryKey: ['nfse', clientId],
+    queryKey: ['nfse', clientId, { page, perPage }],
     queryFn: async () => {
-      const { data } = await nfseHttp.getByClient(clientId)
-      return data.data
+      const { data } = await nfseHttp.getByClient(clientId, { page, per_page: perPage })
+      return extractPaginated<Nfse>(data)
     },
     enabled: !!clientId,
+    placeholderData: keepPreviousData,
   })
 }
 

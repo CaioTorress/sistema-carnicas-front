@@ -1,10 +1,10 @@
 import { api } from './api'
-import type { ApiResponse } from './api'
+import type { ApiResponse, PaginatedResponse, PaginationParams } from './api'
 import type { Nfse, NfsePayload } from '../types/nfse'
 
 export const nfseHttp = {
-  getByClient: (clientId: number) =>
-    api.get<ApiResponse<Nfse[]>>(`/clients/${clientId}/nfse`),
+  getByClient: (clientId: number, params?: PaginationParams) =>
+    api.get<PaginatedResponse<Nfse>>(`/clients/${clientId}/nfse`, { params }),
 
   getById: (clientId: number, nfseId: number) =>
     api.get<ApiResponse<Nfse>>(`/clients/${clientId}/nfse/${nfseId}`),

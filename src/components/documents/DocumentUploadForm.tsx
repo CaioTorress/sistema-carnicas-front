@@ -5,7 +5,10 @@ import { Button } from '../ui/Button'
 
 function isAllowedDocumentFile(file: File): boolean {
   if (file.type === 'application/pdf') return true
-  return file.type.startsWith('image/')
+  if (file.type.startsWith('image/')) return true
+  if (file.type === 'application/xml' || file.type === 'text/xml') return true
+  const lower = file.name.toLowerCase()
+  return lower.endsWith('.xml')
 }
 
 interface DocumentUploadFormProps {
@@ -53,7 +56,7 @@ export function DocumentUploadForm({ isLoading, onUpload }: DocumentUploadFormPr
         <p className="text-sm text-gray-600 text-center px-2">
           {file
             ? file.name
-            : 'CR, AATIPP ou boleto (PDF ou imagem) — arraste ou clique'}
+            : 'CR, AATIPP, boleto ou NFS-e (PDF, imagem ou XML) — arraste ou clique'}
         </p>
         <input
           ref={inputRef}

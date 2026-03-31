@@ -1,13 +1,13 @@
 import { api } from './api'
-import type { ApiResponse } from './api'
+import type { ApiResponse, PaginatedResponse, DocumentListParams } from './api'
 import type { Document, BulkUploadResult } from '../types/document'
 
 export const documentsHttp = {
-  getByClient: (clientId: number) =>
-    api.get<ApiResponse<Document[]>>(`/clients/${clientId}/documents`),
+  getAll: (params?: DocumentListParams) =>
+    api.get<PaginatedResponse<Document>>('/documents', { params }),
 
-  getById: (clientId: number, documentId: number) =>
-    api.get<ApiResponse<Document>>(`/clients/${clientId}/documents/${documentId}`),
+  getById: (documentId: number) =>
+    api.get<ApiResponse<Document>>(`/documents/${documentId}`),
 
   emitirCr: (clientId: number) =>
     api.post<ApiResponse<Document>>(`/clients/${clientId}/cr`),

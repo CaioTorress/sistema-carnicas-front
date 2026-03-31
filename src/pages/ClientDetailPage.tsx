@@ -22,6 +22,7 @@ import { DocumentList } from '../components/documents/DocumentList'
 import { DocumentUploadForm } from '../components/documents/DocumentUploadForm'
 import { NfseList } from '../components/nfse/NfseList'
 import { NfseForm } from '../components/nfse/NfseForm'
+import { DOCUMENT_KINDS_SHORT_LABEL } from '../constants/documents'
 
 export function ClientDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -35,7 +36,8 @@ export function ClientDetailPage() {
   const emitirCr = useEmitirCr(clientId)
   const emitirAatipp = useEmitirAatipp(clientId)
   const uploadDocument = useUploadDocument(clientId)
-  const { data: nfseList, isLoading: nfseLoading } = useNfse(clientId)
+  const { data: nfseData, isLoading: nfseLoading } = useNfse(clientId)
+  const nfseList = nfseData?.items
   const createNfse = useCreateNfse(clientId)
   const deleteNfse = useDeleteNfse(clientId)
   const addEmail = useAddClientEmail(clientId)
@@ -192,8 +194,8 @@ export function ClientDetailPage() {
           </div>
         </Card>
 
-        {/* Seção 2 — Documentos IBAMA (CR, AATIPP, boleto) */}
-        <Card title="Documentos (CR, AATIPP e boleto)">
+        {/* Seção 2 — Documentos (inclui NFS-e enviada como arquivo) */}
+        <Card title={`Documentos (${DOCUMENT_KINDS_SHORT_LABEL})`}>
           <div className="flex flex-wrap gap-2 mb-4">
             <Button size="sm" onClick={handleEmitirCr} isLoading={emitirCr.isPending}>
               <FilePlus size={14} />

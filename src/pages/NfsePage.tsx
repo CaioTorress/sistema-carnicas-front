@@ -8,6 +8,7 @@ import { useToast } from '../components/ui/Toast'
 import { Header } from '../components/layout/Header'
 import { Button } from '../components/ui/Button'
 import { Modal } from '../components/ui/Modal'
+import { Pagination } from '../components/ui/Pagination'
 import { NfseList } from '../components/nfse/NfseList'
 import { NfseForm } from '../components/nfse/NfseForm'
 
@@ -15,8 +16,11 @@ export function NfsePage() {
   const { id } = useParams<{ id: string }>()
   const clientId = Number(id)
   const { toast } = useToast()
+  const [page, setPage] = useState(1)
 
-  const { data: nfseList, isLoading } = useNfse(clientId)
+  const { data, isLoading } = useNfse(clientId, page)
+  const nfseList = data?.items
+  const meta = data?.meta
   const createNfse = useCreateNfse(clientId)
   const deleteNfse = useDeleteNfse(clientId)
 
@@ -61,6 +65,7 @@ export function NfsePage() {
         isLoading={isLoading}
         onDelete={setDeleteTarget}
       />
+      {meta && <Pagination meta={meta} onPageChange={setPage} />}
 
       <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title="Nova NFS-e">
         <NfseForm isLoading={createNfse.isPending} onSubmit={handleCreate} />

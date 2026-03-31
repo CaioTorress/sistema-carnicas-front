@@ -10,7 +10,7 @@ export interface Client {
   name: string
   tax_id: string
   email: string
-  cnpj: string
+  cnpj: string | null
   municipal_registration: string
   ibge_city_code: string
   giss_municipality: string

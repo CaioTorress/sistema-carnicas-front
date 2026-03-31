@@ -34,7 +34,7 @@ const importOptions: { value: ImportType; label: string; description: string; ac
     value: 'documents',
     label: `Documentos (${DOCUMENT_KINDS_SHORT_LABEL})`,
     description:
-      'Enviar PDF ou imagem de boleto — o sistema identifica cliente e tipo (CR, AATIPP ou boleto)',
+      'Enviar PDF, imagem ou XML de NFS-e — o sistema identifica cliente e tipo (CR, AATIPP, boleto ou NFS-e)',
     accept: DOCUMENT_FILE_ACCEPT,
   },
 ]
@@ -68,12 +68,10 @@ function formatFileSize(bytes: number): string {
 
 export function DashboardPage() {
   const queryClient = useQueryClient()
-  const { data: clients, isLoading } = useClients()
-  const clientIds = clients?.map((c) => c.id) ?? []
-  const { count: expiringIn7Days, isPending: expiringDocsLoading } = useExpiringDocumentsCount(
-    clientIds,
-    7,
-  )
+  const { data: clientsData, isLoading } = useClients()
+  const clients = clientsData?.items
+  const clientsMeta = clientsData?.meta
+  const { count: expiringIn7Days, isPending: expiringDocsLoading } = useExpiringDocumentsCount(7)
   const navigate = useNavigate()
   const { toast } = useToast()
 
@@ -92,7 +90,7 @@ export function DashboardPage() {
     )
   }
 
-  const totalClients = clients?.length ?? 0
+  const totalClients = clientsMeta?.total ?? clients?.length ?? 0
   const currentOption = importOptions.find((o) => o.value === importType)
   const canUpload = files.length > 0
 
@@ -243,7 +241,7 @@ export function DashboardPage() {
             >
               <FileText size={20} className="text-green-600" />
               <div>
-                <p className="text-sm font-medium text-gray-900">Documentos IBAMA</p>
+                <p className="text-sm font-medium text-gray-900">Documentos</p>
                 <p className="text-xs text-gray-500">Listagem de {DOCUMENT_KINDS_LIST_LABEL} por cliente</p>
               </div>
             </button>
@@ -302,7 +300,8 @@ export function DashboardPage() {
             <>
               <div className="flex flex-col gap-2">
                 <span className="text-sm font-medium text-gray-700">
-                  Arquivo(s) {importType === 'documents' ? 'PDF ou boleto' : 'CSV'}
+                  Arquivo(s){' '}
+                  {importType === 'documents' ? 'PDF, imagem ou XML (NFS-e)' : 'CSV'}
                 </span>
                 <div
                   className={`relative flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 text-sm text-gray-600 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-600 transition-colors ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
