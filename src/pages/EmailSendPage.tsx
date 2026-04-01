@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef, useCallback, type KeyboardEvent } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   Send, Paperclip, X, ChevronDown, ChevronRight,
   Users, FileText, File as FileIcon, Search, Plus,
@@ -72,6 +73,7 @@ function CollapsiblePanel({
 }
 
 export function EmailSendPage() {
+  const queryClient = useQueryClient()
   const { data: clientsData, isLoading: clientsLoading } = useClients({ page: 1, perPage: 200 })
   const clients = clientsData?.items
   const { data: docsData, isPending: docsLoading } = useAllDocuments({ page: 1, perPage: 200 })
@@ -211,6 +213,7 @@ export function EmailSendPage() {
         attachments,
       })
       toast('success', 'E-mail enviado com sucesso.')
+      void queryClient.invalidateQueries({ queryKey: ['email', 'sent'] })
       setSubject('')
       setBody('')
       setToEmails([])

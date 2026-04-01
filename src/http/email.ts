@@ -1,6 +1,6 @@
 import { api } from './api'
-import type { ApiResponse } from './api'
-import type { EmailDispatchBatchPayload, EmailSendPayload } from '../types/email'
+import type { ApiResponse, PaginatedResponse, PaginationParams } from './api'
+import type { EmailDispatchBatchPayload, EmailSendPayload, SentEmail } from '../types/email'
 
 function appendEmailSendFormData(form: FormData, payload: EmailSendPayload) {
   form.append('subject', payload.subject)
@@ -20,4 +20,10 @@ export const emailHttp = {
     appendEmailSendFormData(form, payload)
     return api.post<ApiResponse<unknown>>('/email/send', form)
   },
+
+  getSent: (params?: PaginationParams) =>
+    api.get<PaginatedResponse<SentEmail>>('/sent-emails', { params }),
+
+  getSentById: (id: number) =>
+    api.get<ApiResponse<SentEmail>>(`/sent-emails/${id}`),
 }

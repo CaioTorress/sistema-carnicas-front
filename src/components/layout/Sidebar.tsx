@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Users, FileText, Mail, LogOut, Leaf } from 'lucide-react'
+import { LayoutDashboard, Users, FileText, Mail, History, LogOut, Leaf } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 
 const navItems = [
@@ -7,6 +7,7 @@ const navItems = [
   { to: '/clients', icon: Users, label: 'Clientes' },
   { to: '/documents', icon: FileText, label: 'Documentos' },
   { to: '/email', icon: Mail, label: 'Enviar e-mail' },
+  { to: '/email/sent', icon: History, label: 'E-mails enviados' },
 ] as const
 
 export function Sidebar() {
@@ -26,7 +27,7 @@ export function Sidebar() {
           <NavLink
             key={to}
             to={to}
-            end={to === '/'}
+            end={to === '/' || to === '/email'}
             className={({ isActive }) =>
               `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                 isActive

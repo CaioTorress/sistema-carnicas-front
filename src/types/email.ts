@@ -18,3 +18,16 @@ export interface EmailSendPayload {
   document_ids: number[]
   attachments: File[]
 }
+
+/** Registro retornado por GET /sent-emails e GET /sent-emails/:id */
+export interface SentEmail {
+  id: number
+  subject?: string | null
+  body?: string | null
+  body_preview?: string | null
+  to?: string | string[] | null
+  recipients?: string[] | null
+  sent_at?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+}
