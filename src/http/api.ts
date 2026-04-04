@@ -92,6 +92,7 @@ export function extractPaginated<T>(responseData: unknown): { items: T[]; meta: 
 }
 
 function currentApiUrl(): string {
+  if (window.location.protocol === 'file:') return 'http://localhost:8000/api'
   const { href } = window.location
 
   if (href.includes('homolog')) return 'https://api-homolog.sistema-vini.com.br/api'
@@ -118,7 +119,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token')
-      window.location.href = '/login'
+      window.location.hash = '/login'
     }
     return Promise.reject(error)
   },

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { Layout } from '../components/layout/Layout'
 import { LoginPage } from '../pages/LoginPage'
@@ -18,7 +18,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 
 export function AppRoutes() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route
@@ -39,6 +39,6 @@ export function AppRoutes() {
           <Route path="clients/:id/nfse" element={<NfsePage />} />
         </Route>
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   )
 }
