@@ -12,6 +12,8 @@ interface TableProps<T> {
   columns: Column<T>[]
   isLoading?: boolean
   emptyMessage?: string
+  /** Evita scroll horizontal: table-layout fixed + células com min-w-0 (útil em telas estreitas). */
+  layoutFixed?: boolean
 }
 
 export function Table<T extends { id: number | string }>({
@@ -19,6 +21,7 @@ export function Table<T extends { id: number | string }>({
   columns,
   isLoading = false,
   emptyMessage = 'Nenhum registro encontrado.',
+  layoutFixed = false,
 }: TableProps<T>) {
   if (isLoading) {
     return (
@@ -36,15 +39,26 @@ export function Table<T extends { id: number | string }>({
     )
   }
 
+  const wrapClass = layoutFixed
+    ? 'overflow-hidden rounded-lg border border-gray-200'
+    : 'overflow-x-auto rounded-lg border border-gray-200'
+  const tableClass = layoutFixed ? 'w-full table-fixed text-sm' : 'w-full text-sm'
+  const thClass = layoutFixed
+    ? 'px-3 py-3 text-left font-medium text-gray-600 min-w-0'
+    : 'px-4 py-3 text-left font-medium text-gray-600'
+  const tdClass = layoutFixed
+    ? 'px-3 py-3 text-gray-700 min-w-0 align-top'
+    : 'px-4 py-3 text-gray-700'
+
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200">
-      <table className="w-full text-sm">
+    <div className={wrapClass}>
+      <table className={tableClass}>
         <thead className="bg-gray-50">
           <tr>
             {columns.map((col) => (
               <th
                 key={String(col.key)}
-                className="px-4 py-3 text-left font-medium text-gray-600"
+                className={thClass}
               >
                 {col.header}
               </th>
@@ -55,7 +69,7 @@ export function Table<T extends { id: number | string }>({
           {data.map((row) => (
             <tr key={row.id} className="hover:bg-gray-50 transition-colors">
               {columns.map((col) => (
-                <td key={String(col.key)} className="px-4 py-3 text-gray-700">
+                <td key={String(col.key)} className={tdClass}>
                   {col.render
                     ? col.render(row)
                     : String(row[col.key as keyof T] ?? '')}

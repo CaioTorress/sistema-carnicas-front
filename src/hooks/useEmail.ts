@@ -3,11 +3,17 @@ import { emailHttp } from '../http/email'
 import { extractPaginated } from '../http/api'
 import type { SentEmail } from '../types/email'
 
-export function useSentEmails(page = 1, perPage = 15) {
+const SENT_LIST_SORT = { order: 'desc' as const, order_by: 'id' as const }
+
+export function useSentEmails(page = 1, perPage = 10) {
   return useQuery({
-    queryKey: ['email', 'sent', { page, perPage }],
+    queryKey: ['email', 'sent', { page, perPage, ...SENT_LIST_SORT }],
     queryFn: async () => {
-      const { data } = await emailHttp.getSent({ page, per_page: perPage })
+      const { data } = await emailHttp.getSent({
+        page,
+        per_page: perPage,
+        ...SENT_LIST_SORT,
+      })
       return extractPaginated<SentEmail>(data)
     },
     placeholderData: keepPreviousData,

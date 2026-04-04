@@ -29,12 +29,12 @@ export function Pagination({ meta, onPageChange }: PaginationProps) {
   const to = Math.min(current_page * per_page, total)
 
   return (
-    <div className="flex flex-col items-center gap-3 pt-4 sm:flex-row sm:justify-between">
-      <p className="text-xs text-gray-500">
+    <div className="flex w-full min-w-0 max-w-full flex-col items-stretch gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
+      <p className="shrink-0 text-center text-xs text-gray-500 sm:text-left">
         Exibindo {from}–{to} de {total}
       </p>
 
-      <div className="flex items-center gap-1">
+      <div className="flex min-w-0 max-w-full flex-wrap items-center justify-center gap-1 sm:justify-end">
         <NavButton
           disabled={current_page <= 1}
           onClick={() => onPageChange(1)}

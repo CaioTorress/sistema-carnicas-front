@@ -1,10 +1,11 @@
-import { useMemo, useState, useRef, useCallback, type KeyboardEvent } from 'react'
+import { useMemo, useState, useRef, useCallback, useEffect, type KeyboardEvent, type DragEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   Send, Paperclip, X, ChevronDown, ChevronRight,
-  Users, FileText, File as FileIcon, Search, Plus,
+  Users, FileText, File as FileIcon, Search, Plus, AtSign,
 } from 'lucide-react'
 import { useClients } from '../hooks/useClients'
+import type { Client } from '../types/client'
 import { useAllDocuments } from '../hooks/useDocuments'
 import { emailHttp } from '../http/email'
 import { handleApiError } from '../utils/handleApiError'
@@ -74,9 +75,60 @@ function CollapsiblePanel({
 
 export function EmailSendPage() {
   const queryClient = useQueryClient()
-  const { data: clientsData, isLoading: clientsLoading } = useClients({ page: 1, perPage: 200 })
+
+  const [clientSearchInput, setClientSearchInput] = useState('')
+  const [debouncedClientName, setDebouncedClientName] = useState('')
+  const [debouncedClientCnpj, setDebouncedClientCnpj] = useState('')
+  const clientDebounceRef = useRef<ReturnType<typeof setTimeout>>(null)
+
+  const [docSearchInput, setDocSearchInput] = useState('')
+  const [debouncedDocType, setDebouncedDocType] = useState('')
+  const [debouncedDocClientName, setDebouncedDocClientName] = useState('')
+  const docDebounceRef = useRef<ReturnType<typeof setTimeout>>(null)
+
+  useEffect(() => {
+    if (clientDebounceRef.current) clearTimeout(clientDebounceRef.current)
+    clientDebounceRef.current = setTimeout(() => {
+      const q = clientSearchInput.trim()
+      const digits = q.replace(/\D/g, '')
+      const isDigits = /^\d+$/.test(digits) && digits.length >= 3
+      setDebouncedClientName(isDigits ? '' : q)
+      setDebouncedClientCnpj(isDigits ? digits : '')
+    }, 400)
+    return () => { if (clientDebounceRef.current) clearTimeout(clientDebounceRef.current) }
+  }, [clientSearchInput])
+
+  useEffect(() => {
+    if (docDebounceRef.current) clearTimeout(docDebounceRef.current)
+    docDebounceRef.current = setTimeout(() => {
+      const q = docSearchInput.trim()
+      const docTypes = ['cr', 'aatipp', 'boleto', 'nfse']
+      const lower = q.toLowerCase()
+      if (docTypes.includes(lower)) {
+        setDebouncedDocType(q)
+        setDebouncedDocClientName('')
+      } else {
+        setDebouncedDocType('')
+        setDebouncedDocClientName(q)
+      }
+    }, 400)
+    return () => { if (docDebounceRef.current) clearTimeout(docDebounceRef.current) }
+  }, [docSearchInput])
+
+  const { data: clientsData, isLoading: clientsLoading, isFetching: clientsFetching } = useClients({
+    page: 1,
+    perPage: 200,
+    name: debouncedClientName || undefined,
+    cnpj: debouncedClientCnpj || undefined,
+  })
   const clients = clientsData?.items
-  const { data: docsData, isPending: docsLoading } = useAllDocuments({ page: 1, perPage: 200 })
+
+  const { data: docsData, isPending: docsLoading, isFetching: docsFetching } = useAllDocuments({
+    page: 1,
+    perPage: 200,
+    type: debouncedDocType || undefined,
+    clientName: debouncedDocClientName || undefined,
+  })
   const documents = docsData?.items ?? []
   const { toast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -90,8 +142,8 @@ export function EmailSendPage() {
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<Set<number>>(new Set())
   const [attachments, setAttachments] = useState<File[]>([])
   const [isSending, setIsSending] = useState(false)
-  const [clientSearch, setClientSearch] = useState('')
-  const [docSearch, setDocSearch] = useState('')
+  const [attachmentDragActive, setAttachmentDragActive] = useState(false)
+  const attachmentDragDepth = useRef(0)
 
   const clientById = useMemo(() => {
     const m = new Map<number, { name: string; cnpj: string | null }>()
@@ -99,31 +151,33 @@ export function EmailSendPage() {
     return m
   }, [clients])
 
-  const visibleClients = useMemo(() => {
-    if (!clients) return []
-    const q = clientSearch.trim().toLowerCase()
-    if (!q) return clients
-    return clients.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        (c.cnpj ?? '').replace(/\D/g, '').includes(q.replace(/\D/g, '')),
-    )
-  }, [clients, clientSearch])
-
+  /** Documentos da API; se houver clientes marcados na sidebar, restringe a eles. */
   const filteredDocs = useMemo(() => {
     if (selectedClientIds.size === 0) return documents
     return documents.filter((d) => selectedClientIds.has(d.client_id))
   }, [documents, selectedClientIds])
 
-  const visibleDocs = useMemo(() => {
-    const q = docSearch.trim().toLowerCase()
-    if (!q) return filteredDocs
-    return filteredDocs.filter((d) => {
-      const info = clientById.get(d.client_id)
-      const name = info?.name.toLowerCase() ?? ''
-      return d.type.toLowerCase().includes(q) || String(d.id).includes(q) || name.includes(q)
-    })
-  }, [filteredDocs, docSearch, clientById])
+  /** E-mails do cadastro dos clientes marcados (principal + contatos adicionais), sem duplicar endereço. */
+  const recipientsBySelectedClients = useMemo(() => {
+    if (!clients?.length || selectedClientIds.size === 0) return []
+    const rows: { client: Client; lines: { email: string; label: string }[] }[] = []
+    for (const id of selectedClientIds) {
+      const c = clients.find((x) => x.id === id)
+      if (!c) continue
+      const seen = new Set<string>()
+      const lines: { email: string; label: string }[] = []
+      const push = (raw: string, label: string) => {
+        const key = raw.trim().toLowerCase()
+        if (!key || seen.has(key)) return
+        seen.add(key)
+        lines.push({ email: raw.trim(), label })
+      }
+      if (c.email?.trim()) push(c.email, 'Principal')
+      c.emails?.forEach((e) => push(e.email, 'Contato adicional'))
+      rows.push({ client: c, lines })
+    }
+    return rows
+  }, [clients, selectedClientIds])
 
   const commitToEmail = useCallback(
     (raw: string) => {
@@ -179,11 +233,50 @@ export function EmailSendPage() {
     })
   }
 
+  function addAttachmentFiles(files: File[]) {
+    if (!files.length) return
+    setAttachments((prev) => [...prev, ...files])
+  }
+
   function onFilesPicked(e: React.ChangeEvent<HTMLInputElement>) {
     const list = e.target.files
     if (!list?.length) return
-    setAttachments((prev) => [...prev, ...Array.from(list)])
+    addAttachmentFiles(Array.from(list))
     e.target.value = ''
+  }
+
+  function handleComposeDragEnter(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault()
+    e.stopPropagation()
+    attachmentDragDepth.current += 1
+    setAttachmentDragActive(true)
+  }
+
+  function handleComposeDragLeave(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault()
+    e.stopPropagation()
+    attachmentDragDepth.current -= 1
+    if (attachmentDragDepth.current <= 0) {
+      attachmentDragDepth.current = 0
+      setAttachmentDragActive(false)
+    }
+  }
+
+  function handleComposeDragOver(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.dataTransfer.types.includes('Files')) {
+      e.dataTransfer.dropEffect = 'copy'
+    }
+  }
+
+  function handleComposeDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault()
+    e.stopPropagation()
+    attachmentDragDepth.current = 0
+    setAttachmentDragActive(false)
+    const { files } = e.dataTransfer
+    if (files?.length) addAttachmentFiles(Array.from(files))
   }
 
   function removeAttachment(index: number) {
@@ -278,8 +371,28 @@ export function EmailSendPage() {
 
       {/* ── Body: compose + sidebar ── */}
       <div className="flex min-h-0 flex-1">
-        {/* ── Compose area (left) ── */}
-        <div className="flex flex-1 flex-col overflow-y-auto bg-white">
+        {/* ── Compose area (left) — arrastar arquivos para anexar ── */}
+        <div
+          className={`relative flex flex-1 flex-col overflow-y-auto bg-white transition-colors ${
+            attachmentDragActive ? 'ring-2 ring-inset ring-blue-400 bg-blue-50/40' : ''
+          }`}
+          onDragEnter={handleComposeDragEnter}
+          onDragLeave={handleComposeDragLeave}
+          onDragOver={handleComposeDragOver}
+          onDrop={handleComposeDrop}
+        >
+          {attachmentDragActive && (
+            <div
+              className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-blue-100/50 backdrop-blur-[1px]"
+              aria-hidden
+            >
+              <div className="rounded-lg border-2 border-dashed border-blue-500 bg-white/90 px-6 py-4 text-center shadow-lg">
+                <Paperclip className="mx-auto mb-2 text-blue-600" size={28} />
+                <p className="text-sm font-semibold text-blue-800">Solte os arquivos para anexar</p>
+                <p className="mt-1 text-xs text-gray-500">Vários arquivos de uma vez</p>
+              </div>
+            </div>
+          )}
           {/* Para */}
           <div className="flex items-start gap-0 border-b border-gray-100 px-5 py-2.5">
             <span className="mt-1.5 w-16 shrink-0 text-sm font-medium text-gray-500">Para</span>
@@ -302,6 +415,38 @@ export function EmailSendPage() {
               />
             </div>
           </div>
+
+          {/* Destinatários do cadastro dos clientes selecionados */}
+          {recipientsBySelectedClients.length > 0 && (
+            <div className="border-b border-gray-100 bg-slate-50/80 px-5 py-3">
+              <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <AtSign size={14} className="text-blue-600" />
+                Destinatários (cadastro do cliente)
+              </div>
+              <div className="space-y-3">
+                {recipientsBySelectedClients.map(({ client, lines }) => (
+                  <div key={client.id}>
+                    <p className="text-xs font-medium text-gray-800">{client.name}</p>
+                    {lines.length === 0 ? (
+                      <p className="mt-1 text-xs text-amber-700">Nenhum e-mail cadastrado para este cliente.</p>
+                    ) : (
+                      <ul className="mt-1 space-y-0.5 pl-1">
+                        {lines.map(({ email, label }) => (
+                          <li key={`${client.id}-${email}`} className="flex flex-wrap items-baseline gap-x-2 text-xs">
+                            <span className="font-mono text-gray-900">{email}</span>
+                            <span className="text-gray-500">({label})</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2 text-[11px] text-gray-500">
+                Com clientes selecionados, a API usa estes e-mails; &quot;Para&quot; é opcional para destinatários extras.
+              </p>
+            </div>
+          )}
 
           {/* Assunto */}
           <div className="flex items-center gap-0 border-b border-gray-100 px-5 py-2.5">
@@ -344,7 +489,20 @@ export function EmailSendPage() {
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              placeholder="Escreva sua mensagem aqui..."
+              onDragOver={(e) => {
+                e.preventDefault()
+                if (e.dataTransfer.types.includes('Files')) e.dataTransfer.dropEffect = 'copy'
+              }}
+              onDrop={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                attachmentDragDepth.current = 0
+                setAttachmentDragActive(false)
+                if (e.dataTransfer.files?.length) {
+                  addAttachmentFiles(Array.from(e.dataTransfer.files))
+                }
+              }}
+              placeholder="Escreva sua mensagem aqui… (ou arraste arquivos para anexar)"
               className="h-full min-h-[300px] w-full resize-none border-none text-sm leading-relaxed outline-none placeholder:text-gray-400"
             />
           </div>
@@ -363,9 +521,9 @@ export function EmailSendPage() {
               <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                value={clientSearch}
-                onChange={(e) => setClientSearch(e.target.value)}
-                placeholder="Buscar cliente..."
+                value={clientSearchInput}
+                onChange={(e) => setClientSearchInput(e.target.value)}
+                placeholder="Nome ou CNPJ (busca no servidor)..."
                 className="w-full rounded border border-gray-200 bg-white py-1.5 pl-7 pr-2 text-xs focus:border-blue-500 focus:outline-none"
               />
             </div>
@@ -373,7 +531,10 @@ export function EmailSendPage() {
               <p className="py-2 text-xs text-gray-500">Nenhum cliente.</p>
             ) : (
               <div className="max-h-44 space-y-0.5 overflow-y-auto">
-                {visibleClients.map((c) => {
+                {(clientsFetching && !clientsLoading) && (
+                  <p className="mb-1 text-[10px] text-blue-600">Buscando clientes…</p>
+                )}
+                {(clients ?? []).map((c) => {
                   const checked = selectedClientIds.has(c.id)
                   return (
                     <label
@@ -410,9 +571,9 @@ export function EmailSendPage() {
               <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                value={docSearch}
-                onChange={(e) => setDocSearch(e.target.value)}
-                placeholder="Buscar documento..."
+                value={docSearchInput}
+                onChange={(e) => setDocSearchInput(e.target.value)}
+                placeholder="Tipo (CR, NFSE…) ou nome do cliente…"
                 className="w-full rounded border border-gray-200 bg-white py-1.5 pl-7 pr-2 text-xs focus:border-blue-500 focus:outline-none"
               />
             </div>
@@ -420,7 +581,7 @@ export function EmailSendPage() {
               <div className="flex justify-center py-3">
                 <Spinner size="sm" />
               </div>
-            ) : visibleDocs.length === 0 ? (
+            ) : filteredDocs.length === 0 ? (
               <p className="py-2 text-xs text-gray-500">
                 {selectedClientIds.size > 0
                   ? 'Nenhum documento para os clientes selecionados.'
@@ -428,7 +589,10 @@ export function EmailSendPage() {
               </p>
             ) : (
               <div className="max-h-52 space-y-0.5 overflow-y-auto">
-                {visibleDocs.map((d) => {
+                {docsFetching && !docsLoading && (
+                  <p className="mb-1 text-[10px] text-blue-600">Atualizando lista…</p>
+                )}
+                {filteredDocs.map((d) => {
                   const info = clientById.get(d.client_id)
                   const checked = selectedDocumentIds.has(d.id)
                   return (
@@ -468,11 +632,14 @@ export function EmailSendPage() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="mb-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-gray-300 py-2 text-xs font-medium text-gray-500 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+              className="mb-2 flex w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-gray-300 py-3 px-2 text-xs font-medium text-gray-500 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-600 transition-colors"
             >
               <Plus size={14} />
               Adicionar arquivo
             </button>
+            <p className="mb-2 text-center text-[10px] text-gray-400">
+              Ou arraste arquivos para a área da mensagem (esquerda)
+            </p>
             {attachments.length > 0 && (
               <div className="space-y-1">
                 {attachments.map((f, i) => (
