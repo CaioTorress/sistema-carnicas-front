@@ -98,7 +98,7 @@ function currentApiUrl(): string {
   if (href.includes('homolog')) return 'https://api-homolog.sistema-vini.com.br/api'
   if (href.includes('develop') || href.includes('localhost')) return 'http://localhost:8000/api'
 
-  return 'https://api.sistema-vini.com.br/api'
+  return 'https://api-sistema-venter.caiotorres.com.br/api'
 }
 
 export const api = axios.create({
