@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { Client, ClientPayload } from '../../types/client'
 import { applyCpfCnpjMask } from '../../utils/formatters'
+import { useToast } from '../ui/Toast'
 import { Input } from '../ui/Input'
 import { Button } from '../ui/Button'
 
@@ -11,100 +12,62 @@ interface ClientFormProps {
 }
 
 export function ClientForm({ client, isLoading, onSubmit }: ClientFormProps) {
+  const { toast } = useToast()
   const [name, setName] = useState(client?.name ?? '')
-  const [taxId, setTaxId] = useState(client?.tax_id ?? '')
   const [email, setEmail] = useState(client?.email ?? '')
   const [cnpj, setCnpj] = useState(client?.cnpj ?? '')
-  const [municipalRegistration, setMunicipalRegistration] = useState(client?.municipal_registration ?? '')
-  const [ibgeCityCode, setIbgeCityCode] = useState(client?.ibge_city_code ?? '')
-  const [gissMunicipality, setGissMunicipality] = useState(client?.giss_municipality ?? '')
-  const [ibamaPassword, setIbamaPassword] = useState('')
-  const [certFile, setCertFile] = useState<File | undefined>(undefined)
-  const [certPassword, setCertPassword] = useState('')
+  const [idTamendes, setIdTamendes] = useState(
+    client?.id_tamendes != null ? String(client.id_tamendes) : '',
+  )
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    onSubmit({
+    const digits = cnpj.replace(/\D/g, '')
+    const idT = idTamendes.trim()
+    let id_tamendes: number | null | undefined
+    if (client) {
+      id_tamendes = idT === '' ? null : Number(idT)
+      if (idT !== '' && Number.isNaN(id_tamendes)) {
+        toast('error', 'ID TaMendes deve ser um número inteiro.')
+        return
+      }
+    } else if (idT !== '') {
+      const n = Number(idT)
+      if (Number.isNaN(n)) {
+        toast('error', 'ID TaMendes deve ser um número inteiro.')
+        return
+      }
+      id_tamendes = n
+    }
+
+    const payload: ClientPayload = {
       name,
-      tax_id: taxId.replace(/\D/g, ''),
       email,
-      cnpj: cnpj.replace(/\D/g, ''),
-      municipal_registration: municipalRegistration,
-      ibge_city_code: ibgeCityCode,
-      giss_municipality: gissMunicipality,
-      ibama_password: ibamaPassword,
-      cert_path: certFile,
-      cert_password: certPassword,
-    })
+      cnpj: digits,
+      ...(id_tamendes !== undefined ? { id_tamendes } : {}),
+    }
+    onSubmit(payload)
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <Input label="Nome" value={name} onChange={(e) => setName(e.target.value)} required />
 
-      <div className="grid grid-cols-2 gap-4">
-        <Input
-          label="CPF/CNPJ (Tax ID)"
-          value={applyCpfCnpjMask(taxId)}
-          onChange={(e) => setTaxId(e.target.value.replace(/\D/g, ''))}
-          required
-        />
-        <Input
-          label="CNPJ"
-          value={applyCpfCnpjMask(cnpj)}
-          onChange={(e) => setCnpj(e.target.value.replace(/\D/g, ''))}
-          required
-        />
-      </div>
-
-      <Input label="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-
-      <div className="grid grid-cols-2 gap-4">
-        <Input
-          label="Inscrição Municipal"
-          value={municipalRegistration}
-          onChange={(e) => setMunicipalRegistration(e.target.value)}
-          required
-        />
-        <Input
-          label="Código IBGE"
-          value={ibgeCityCode}
-          onChange={(e) => setIbgeCityCode(e.target.value)}
-          required
-        />
-      </div>
-
       <Input
-        label="Município GissOnline"
-        value={gissMunicipality}
-        onChange={(e) => setGissMunicipality(e.target.value)}
+        label="CPF/CNPJ"
+        value={applyCpfCnpjMask(cnpj)}
+        onChange={(e) => setCnpj(e.target.value.replace(/\D/g, ''))}
         required
       />
 
-      <Input
-        label="Senha IBAMA"
-        type="password"
-        value={ibamaPassword}
-        onChange={(e) => setIbamaPassword(e.target.value)}
-        required={!client}
-      />
-
-      <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium text-gray-700">Certificado Digital (.pfx/.p12)</label>
-        <input
-          type="file"
-          accept=".pfx,.p12"
-          onChange={(e) => setCertFile(e.target.files?.[0])}
-          className="text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100"
-        />
-      </div>
+      <Input label="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
 
       <Input
-        label="Senha do Certificado"
-        type="password"
-        value={certPassword}
-        onChange={(e) => setCertPassword(e.target.value)}
-        required={!client}
+        label="ID TaMendes (opcional)"
+        inputMode="numeric"
+        value={idTamendes}
+        onChange={(e) => setIdTamendes(e.target.value.replace(/\D/g, ''))}
+        placeholder="Deixe em branco se não houver"
       />
 
       <Button type="submit" isLoading={isLoading} className="w-full">

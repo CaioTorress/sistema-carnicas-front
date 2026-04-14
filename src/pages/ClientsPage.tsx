@@ -132,7 +132,12 @@ export function ClientsPage() {
         subtitle={meta ? `${meta.total} cliente(s)` : undefined}
         actions={
           <>
-            <Button variant="secondary" onClick={() => csvRef.current?.click()} isLoading={importCsv.isPending}>
+            <Button
+              variant="secondary"
+              onClick={() => csvRef.current?.click()}
+              isLoading={importCsv.isPending}
+              title="Colunas obrigatórias: name, cnpj, email"
+            >
               <Upload size={16} />
               Importar CSV
             </Button>

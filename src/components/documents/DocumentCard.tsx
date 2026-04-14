@@ -1,6 +1,7 @@
 import { Download } from 'lucide-react'
 import type { Document } from '../../types/document'
 import {
+  formatCpfCnpj,
   formatDate,
   daysRemainingColor,
   resolveDaysUntilExpiry,
@@ -24,6 +25,9 @@ export function DocumentCard({ document: doc }: DocumentCardProps) {
             <span className="font-semibold text-gray-900">{doc.type}</span>
             <DocumentStatusBadge status={doc.status} />
           </div>
+          {doc.cnpj && (
+            <p className="mt-0.5 text-xs text-gray-500">CNPJ: {formatCpfCnpj(doc.cnpj)}</p>
+          )}
           <p className="mt-1 text-sm text-gray-500">
             {doc.issued_at ? `Emitido em ${formatDate(doc.issued_at)}` : 'Não emitido'}
             {doc.expires_at && ` — Vence em ${formatDate(doc.expires_at)}`}

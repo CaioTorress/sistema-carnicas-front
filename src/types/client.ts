@@ -8,28 +8,21 @@ export interface ClientEmail {
 export interface Client {
   id: number
   name: string
-  tax_id: string
   email: string
   cnpj: string | null
-  municipal_registration: string
-  ibge_city_code: string
-  giss_municipality: string
+  id_tamendes: number | null
+  ibama_session_expires_at: string | null
   emails: ClientEmail[]
   created_at: string
   updated_at: string
 }
 
+/** Corpo para POST /clients — name, email e cnpj obrigatórios; id_tamendes opcional. */
 export interface ClientPayload {
   name: string
-  tax_id: string
   email: string
   cnpj: string
-  municipal_registration: string
-  ibge_city_code: string
-  giss_municipality: string
-  ibama_password: string
-  cert_path?: File
-  cert_password: string
+  id_tamendes?: number | null
 }
 
 export interface ClientEmailPayload {

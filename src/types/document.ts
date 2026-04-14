@@ -6,7 +6,7 @@ export interface Document {
   client_id: number
   type: DocumentType
   status: DocumentStatus
-  tax_id: string
+  cnpj: string | null
   file_url: string | null
   issued_at: string | null
   expires_at: string | null
@@ -31,6 +31,7 @@ export interface BulkUploadErrorItem {
   error?: string
   reason?: string
   message?: string
+  cnpj?: string
 }
 
 export interface BulkUploadResult {

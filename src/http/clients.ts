@@ -2,16 +2,20 @@ import { api } from './api'
 import type { ApiResponse, PaginatedResponse, ClientListParams } from './api'
 import type { Client, ClientPayload, ClientEmailPayload } from '../types/client'
 
-function toFormData(payload: Record<string, unknown>): FormData {
+/** Monta FormData para cliente: omite `undefined`; `null` vira string vazia (ex.: limpar id_tamendes). */
+function clientPayloadToFormData(payload: Record<string, unknown>): FormData {
   const form = new FormData()
   Object.entries(payload).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
-      if (value instanceof File) {
-        form.append(key, value)
-      } else {
-        form.append(key, String(value))
-      }
+    if (value === undefined) return
+    if (value instanceof File) {
+      form.append(key, value)
+      return
     }
+    if (value === null) {
+      form.append(key, '')
+      return
+    }
+    form.append(key, String(value))
   })
   return form
 }
@@ -24,14 +28,14 @@ export const clientsHttp = {
     api.get<ApiResponse<Client>>(`/clients/${id}`),
 
   create: (payload: ClientPayload) => {
-    const form = toFormData(payload as unknown as Record<string, unknown>)
+    const form = clientPayloadToFormData(payload as unknown as Record<string, unknown>)
     return api.post<ApiResponse<Client>>('/clients', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
 
   update: (id: number, payload: Partial<ClientPayload>) => {
-    const form = toFormData({ ...payload, _method: 'PUT' } as unknown as Record<string, unknown>)
+    const form = clientPayloadToFormData({ ...payload, _method: 'PUT' } as unknown as Record<string, unknown>)
     return api.post<ApiResponse<Client>>(`/clients/${id}`, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })

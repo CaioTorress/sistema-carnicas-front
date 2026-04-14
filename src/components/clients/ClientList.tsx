@@ -66,7 +66,6 @@ export function ClientList({ clients, isLoading, onEdit, onDelete, sortIcon, onS
         </div>
       ),
     },
-    { key: 'giss_municipality', header: 'Município GissOnline' },
     {
       key: 'actions',
       header: 'Ações',

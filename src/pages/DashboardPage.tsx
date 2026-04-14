@@ -17,6 +17,7 @@ import {
   DOCUMENT_FILE_ACCEPT,
 } from '../constants/documents'
 import { handleApiError } from '../utils/handleApiError'
+import { formatCpfCnpj } from '../utils/formatters'
 import { useToast } from '../components/ui/Toast'
 import { Header } from '../components/layout/Header'
 import { Card } from '../components/ui/Card'
@@ -28,7 +29,12 @@ import { BulkUploadEmailSection } from '../components/documents/BulkUploadEmailS
 type ImportType = 'clients' | 'emails' | 'documents'
 
 const importOptions: { value: ImportType; label: string; description: string; accept: string }[] = [
-  { value: 'clients', label: 'Clientes', description: 'Importar planilha(s) CSV de clientes', accept: '.csv' },
+  {
+    value: 'clients',
+    label: 'Clientes',
+    description: 'CSV com colunas obrigatórias: name, cnpj, email',
+    accept: '.csv',
+  },
   { value: 'emails', label: 'E-mails', description: 'Importar planilha(s) CSV de e-mails', accept: '.csv' },
   {
     value: 'documents',
@@ -261,7 +267,7 @@ export function DashboardPage() {
                     <p className="text-sm font-medium text-gray-900">{client.name}</p>
                     <p className="text-xs text-gray-500">{client.email}</p>
                   </div>
-                  <span className="text-xs text-gray-400">{client.giss_municipality}</span>
+                  <span className="text-xs text-gray-400">{formatCpfCnpj(client.cnpj)}</span>
                 </button>
               ))}
             </div>
@@ -402,6 +408,9 @@ export function DashboardPage() {
                           <WarnIcon size={16} className="shrink-0 mt-0.5 text-yellow-600" />
                           <div className="min-w-0">
                             <p className="truncate text-sm font-medium text-yellow-800">{item.file}</p>
+                            {item.cnpj && (
+                              <p className="text-xs text-yellow-800/80">CNPJ: {formatCpfCnpj(item.cnpj)}</p>
+                            )}
                             <p className="text-sm text-yellow-700">{reason}</p>
                           </div>
                         </div>
@@ -423,6 +432,9 @@ export function DashboardPage() {
                           <XCircle size={16} className="shrink-0 mt-0.5 text-red-600" />
                           <div className="min-w-0">
                             <p className="truncate text-sm font-medium text-red-800">{item.file}</p>
+                            {item.cnpj && (
+                              <p className="text-xs text-red-800/80">CNPJ: {formatCpfCnpj(item.cnpj)}</p>
+                            )}
                             <p className="text-sm text-red-700">{reason}</p>
                           </div>
                         </div>

@@ -194,7 +194,9 @@ export function DocumentsListPage() {
         return (
           <div>
             <p className="text-sm font-medium text-gray-900">{info?.name ?? '—'}</p>
-            <p className="text-xs text-gray-500">{info ? formatCpfCnpj(info.cnpj) : ''}</p>
+            <p className="text-xs text-gray-500">
+              {formatCpfCnpj(info?.cnpj ?? row.cnpj)}
+            </p>
           </div>
         )
       },

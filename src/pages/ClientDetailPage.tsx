@@ -8,7 +8,7 @@ import type { ClientPayload } from '../types/client'
 import type { NfsePayload } from '../types/nfse'
 import type { Nfse } from '../types/nfse'
 import { handleApiError } from '../utils/handleApiError'
-import { formatCpfCnpj } from '../utils/formatters'
+import { formatCpfCnpj, formatDate } from '../utils/formatters'
 import type { ClientEmail } from '../types/client'
 import { useToast } from '../components/ui/Toast'
 import { Header } from '../components/layout/Header'
@@ -160,9 +160,20 @@ export function ClientDetailPage() {
         <Card title="Dados do Cliente">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-4">
             <InfoField label="Nome" value={client.name} />
-            <InfoField label="Tax ID" value={formatCpfCnpj(client.tax_id)} />
             <InfoField label="CNPJ" value={formatCpfCnpj(client.cnpj)} />
             <InfoField label="E-mail Principal" value={client.email} />
+            <InfoField
+              label="ID TaMendes"
+              value={client.id_tamendes != null ? String(client.id_tamendes) : '—'}
+            />
+            <InfoField
+              label="Sessão IBAMA (expira)"
+              value={
+                client.ibama_session_expires_at
+                  ? formatDate(client.ibama_session_expires_at)
+                  : '—'
+              }
+            />
             {client.emails?.length > 0 && (
               <div className="sm:col-span-2 lg:col-span-3">
                 <p className="text-xs font-medium text-gray-500 mb-1">E-mails Relacionados</p>
@@ -178,9 +189,6 @@ export function ClientDetailPage() {
                 </div>
               </div>
             )}
-            <InfoField label="Inscrição Municipal" value={client.municipal_registration} />
-            <InfoField label="Código IBGE" value={client.ibge_city_code} />
-            <InfoField label="Município GissOnline" value={client.giss_municipality} />
           </div>
           <div className="flex gap-2">
             <Button variant="secondary" size="sm" onClick={() => setIsEditOpen(true)}>
